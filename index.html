@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASHA Visit Planner — a visit planner for frontline health workers</title>
+<meta name="description" content="An offline-first visit planner for frontline health workers: household lists, visit checklists, and due-date reminders that run on the device.">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <h1>ASHA Visit Planner</h1>
+      <p class="tagline">A visit planner for frontline health workers. Works offline. Data stays on this device.</p>
+    </div>
+    <p class="net-status" id="netStatus" role="status">Offline-ready</p>
+  </div>
+  <nav class="tabs" aria-label="Main sections">
+    <button type="button" class="tab active" data-view="dashboard" aria-current="page">Dashboard</button>
+    <button type="button" class="tab" data-view="households">Households</button>
+    <button type="button" class="tab" data-view="visits">Visits</button>
+    <button type="button" class="tab" data-view="data">Data &amp; backup</button>
+  </nav>
+</header>
+
+<main>
+  <p class="notice" id="appMessage" role="status" aria-live="polite"></p>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dashboard" class="view">
+    <h2>Today at a glance</h2>
+    <p class="lede">Counts below are worked out from the visits you have saved, using today's date on this device.</p>
+
+    <div class="cards" id="summaryCards">
+      <div class="card"><span class="card-num" id="countHouseholds">0</span><span class="card-label">Households</span></div>
+      <div class="card"><span class="card-num" id="countDueToday">0</span><span class="card-label">Due today</span></div>
+      <div class="card warn"><span class="card-num" id="countOverdue">0</span><span class="card-label">Overdue</span></div>
+      <div class="card"><span class="card-num" id="countUpcoming">0</span><span class="card-label">Upcoming</span></div>
+      <div class="card ok"><span class="card-num" id="countDone">0</span><span class="card-label">Completed</span></div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-row"><span>Visits completed</span><span id="progressText">0 of 0</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3>Due today</h3>
+        <ul class="visit-list" id="dueTodayList"></ul>
+      </div>
+      <div>
+        <h3>Overdue — needs a visit first</h3>
+        <ul class="visit-list" id="overdueList"></ul>
+      </div>
+    </div>
+
+    <h3>Visits by type</h3>
+    <ul class="type-counts" id="typeCounts"></ul>
+
+    <p class="hint">Tip: start on the Households tab to add a family, then add a visit with a due date. The dashboard updates on its own.</p>
+  </section>
+
+  <!-- ============ HOUSEHOLDS ============ -->
+  <section id="view-households" class="view" hidden>
+    <h2>Households</h2>
+    <p class="lede">One entry per household you visit. Keep only what you need for the visit — names, village, and a note.</p>
+
+    <form id="householdForm" class="form">
+      <h3 id="householdFormTitle">Add a household</h3>
+      <input type="hidden" id="householdId">
+      <div class="field">
+        <label for="hhName">Head of household / family name *</label>
+        <input id="hhName" type="text" required maxlength="80" placeholder="e.g. Meena Sharma" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="hhVillage">Village / area *</label>
+          <input id="hhVillage" type="text" required maxlength="80" placeholder="e.g. Rampur" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="hhMembers">People in the household</label>
+          <input id="hhMembers" type="number" min="1" max="50" value="4">
+        </div>
+      </div>
+      <div class="field">
+        <label for="hhPhone">Phone (optional)</label>
+        <input id="hhPhone" type="tel" maxlength="20" placeholder="Optional — only if the family agrees" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="hhNotes">Notes (optional)</label>
+        <textarea id="hhNotes" rows="2" maxlength="400" placeholder="e.g. House near the school; ask for the grandmother."></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary" id="householdSubmit">Save household</button>
+        <button type="button" class="btn" id="householdCancel" hidden>Cancel edit</button>
+      </div>
+    </form>
+
+    <div class="toolbar">
+      <label class="search-label" for="householdSearch">Search households</label>
+      <input id="householdSearch" type="search" placeholder="Search by name or village" autocomplete="off">
+      <button type="button" class="btn" id="loadSample">Load sample households</button>
+    </div>
+    <p class="hint">Sample households are marked “Sample”. Use them to try the app, then delete them or clear all data under Data &amp; backup.</p>
+    <ul class="household-list" id="householdList"></ul>
+  </section>
+
+  <!-- ============ VISITS ============ -->
+  <section id="view-visits" class="view" hidden>
+    <h2>Visits</h2>
+    <p class="lede">Plan a visit, tick off the checklist while you are there, and mark the visit done when it is finished.</p>
+
+    <form id="visitForm" class="form">
+      <h3 id="visitFormTitle">Add a visit</h3>
+      <input type="hidden" id="visitId">
+      <div class="field">
+        <label for="visitHousehold">Household *</label>
+        <select id="visitHousehold" required></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="visitType">Visit type *</label>
+          <select id="visitType" required>
+            <option value="antenatal">Antenatal (pregnancy)</option>
+            <option value="immunisation">Immunisation (child)</option>
+            <option value="followup">Follow-up</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="visitDue">Due date *</label>
+          <input id="visitDue" type="date" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="visitTitle">Visit title *</label>
+        <input id="visitTitle" type="text" required maxlength="100" placeholder="e.g. Antenatal check-in — third visit" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="visitNotes">Notes (optional)</label>
+        <textarea id="visitNotes" rows="2" maxlength="400" placeholder="e.g. Bring the mother's health card; check the referral slip."></textarea>
+      </div>
+
+      <fieldset class="checklist-editor">
+        <legend>Checklist for this visit</legend>
+        <p class="hint">These are planning prompts, not medical advice. Change them to fit what the local health centre asks for.</p>
+        <ul id="checklistEditor"></ul>
+        <div class="field-row">
+          <input id="newCheckItem" type="text" maxlength="140" placeholder="Add a checklist item" aria-label="Add a checklist item">
+          <button type="button" class="btn" id="addCheckItem">Add item</button>
+        </div>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary" id="visitSubmit">Save visit</button>
+        <button type="button" class="btn" id="visitCancel" hidden>Cancel edit</button>
+      </div>
+    </form>
+
+    <details class="helpers">
+      <summary>Work out due dates from a date you already know</summary>
+      <div class="helper-grid">
+        <div class="helper">
+          <h4>Child immunisation — from the birth date</h4>
+          <p>Enter the child's birth date to add four planning visits: 6 weeks, 10 weeks, 14 weeks, and 9 months after birth. These are standard planning intervals — check the child's immunisation card and the local health centre for the exact dates.</p>
+          <label for="birthDate">Child's birth date</label>
+          <input id="birthDate" type="date">
+          <button type="button" class="btn" id="makeImmunisation">Add the four visits</button>
+        </div>
+        <div class="helper">
+          <h4>Antenatal — from the expected delivery date</h4>
+          <p>Enter the expected delivery date to add two check-in visits: 4 weeks before and 1 week before that date. These are suggestions only — change or delete them, and confirm dates with the health centre.</p>
+          <label for="eddDate">Expected delivery date</label>
+          <input id="eddDate" type="date">
+          <button type="button" class="btn" id="makeAntenatal">Add the two visits</button>
+        </div>
+      </div>
+      <p class="hint">The helpers above need a household picked in the visit form first.</p>
+    </details>
+
+    <div class="toolbar">
+      <label for="visitFilter">Show</label>
+      <select id="visitFilter">
+        <option value="all">All visits</option>
+        <option value="today">Due today</option>
+        <option value="overdue">Overdue</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="done">Completed</option>
+      </select>
+      <label for="visitTypeFilter">Type</label>
+      <select id="visitTypeFilter">
+        <option value="all">All types</option>
+        <option value="antenatal">Antenatal</option>
+        <option value="immunisation">Immunisation</option>
+        <option value="followup">Follow-up</option>
+      </select>
+      <button type="button" class="btn" id="printToday">Print today's list</button>
+    </div>
+    <ul class="visit-list full" id="visitList"></ul>
+  </section>
+
+  <!-- ============ DATA ============ -->
+  <section id="view-data" class="view" hidden>
+    <h2>Data &amp; backup</h2>
+    <p class="lede">Everything you enter is stored in this browser on this device. There is no account and nothing is sent anywhere. Use the buttons below to keep a copy or move your data to another device.</p>
+
+    <div class="data-grid">
+      <div class="data-box">
+        <h3>Back up</h3>
+        <p>Download all households and visits as one JSON file. Keep it somewhere safe.</p>
+        <button type="button" class="btn primary" id="exportData">Download backup (JSON)</button>
+      </div>
+      <div class="data-box">
+        <h3>Restore</h3>
+        <p>Load a backup file made by this app. It replaces what is on this device now.</p>
+        <label for="importFile" class="btn">Choose a backup file</label>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+        <p class="hint" id="importStatus"></p>
+      </div>
+      <div class="data-box danger">
+        <h3>Start again</h3>
+        <p>Delete every household and visit on this device. This cannot be undone — download a backup first if you need the data.</p>
+        <button type="button" class="btn danger-btn" id="clearData">Delete all data</button>
+      </div>
+    </div>
+
+    <h3>About this tool</h3>
+    <p>ASHA stands for Accredited Social Health Activist — a community health worker under India's National Health Mission. The programme began in 2005 under the National Rural Health Mission, and the usual norm is one ASHA per 1,000 people in rural areas. This planner does not give medical advice, name medicines, or set doses. It only helps a health worker keep track of who to visit, when, and what to check. For any health question, the worker should follow the guidance of the local health centre.</p>
+    <p>Source: National Health Mission / Ministry of Health and Family Welfare (MoHFW) ASHA guidelines — see the project README for the exact references.</p>
+    <p>Built by Sojung Na for the Code for a Billion Hackathon 2026 (Health challenge). Open source under the MIT licence.</p>
+  </section>
+</main>
+
+<footer>
+  <p>ASHA Visit Planner — works offline; all data stays in this browser. No medical advice, no medicines, no doses.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
