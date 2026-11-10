@@ -112,10 +112,9 @@ demonstration.
   diagnostics access, public-health surveillance.
 - Hackathon: Code for a Billion 2026 (https://codeforindia.org/hackathon).
   Submissions close 15 November 2026. Winners are announced 5 December 2026.
-- Registration is a sign-up at AgentFoundry.me (the official IDE). This
-  project was built with standard web tooling because the author does not
-  yet hold an AgentFoundry account; the author must sign up there and link
-  this repo to complete registration.
+- Entry status: withdrawn on 10 November 2026 — the hackathon's submission
+  process requires its official IDE, which the author does not use. The app
+  stays live here as a portfolio piece.
 - Judging (25% each): size of the problem, severity of the problem, quality
   of the solution, proven impact. The app is deployed and usable now, so
   impact can be checked by opening the live link and using it.
